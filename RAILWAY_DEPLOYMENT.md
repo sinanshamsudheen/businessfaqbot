@@ -128,7 +128,7 @@ OPENAI_API_KEY=your_openai_api_key_here
    ```
 
 3. **Configure Custom Start Command**
-   - Custom Start Command: `streamlit run streamlit_app.py --server.port=${PORT:-8501} --server.address=0.0.0.0`
+   - Custom Start Command: `./start.sh` (uses startup script for proper port handling)
 
 4. **Deploy**
    - Click "Deploy"
@@ -216,7 +216,7 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "streamlit run streamlit_app.py --server.port=${PORT:-8501} --server.address=0.0.0.0"
+startCommand = "./start.sh"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 ```
@@ -299,28 +299,29 @@ git push origin main
 ```
 
 #### 3. **Streamlit PORT Environment Variable Error**
-This error occurs when Streamlit can't parse the `$PORT` variable properly.
+This error occurs when Streamlit can't parse the PORT variable properly.
 
 **Error Message:**
 ```
-Error: Invalid value for '--server.port': '$PORT' is not a valid integer.
+Error: Invalid value for '--server.port': '${PORT:-8501}' is not a valid integer.
 ```
 
-**Solution:**
+**Solution (Updated - Using Startup Script):**
+The project now includes a `start.sh` script that properly handles PORT variable expansion:
+
 ```bash
-# Update your frontend start command to use proper variable expansion:
-streamlit run streamlit_app.py --server.port=${PORT:-8501} --server.address=0.0.0.0
-
-# Or set the PORT variable explicitly in Railway:
-# Go to frontend service → Variables → Add:
-PORT=8501
+# The start.sh script automatically handles this:
+#!/bin/bash
+if [ -z "$PORT" ]; then
+    export PORT=8501
+fi
+exec streamlit run streamlit_app.py --server.port=$PORT --server.address=0.0.0.0
 ```
 
-**Alternative Solution - Update Dockerfile:**
-```dockerfile
-# Use shell form for proper variable expansion
-CMD streamlit run streamlit_app.py --server.port=${PORT:-8501} --server.address=0.0.0.0
-```
+**Railway Configuration:**
+- Set Custom Start Command to: `./start.sh`
+- No need to set PORT variable manually - Railway provides it automatically
+- The startup script falls back to 8501 if PORT is not set
 
 #### 4. **Frontend Can't Connect to Backend**
 ```bash

@@ -100,7 +100,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 
 6. **Configure Custom Start Command** (if needed)
    - In Settings → Deploy
-   - Custom Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - Custom Start Command: `./start.sh` (uses startup script for proper port handling)
 
 7. **Deploy**
    - Click "Deploy"
@@ -202,7 +202,7 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+startCommand = "./start.sh"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 ```
@@ -281,7 +281,45 @@ railway logs --service backend
 # - Ensure port 8000 is properly exposed
 ```
 
-#### 2. **Docker Build Error: "COPY ../data ./data" not found**
+#### 2. **Backend/Frontend PORT Environment Variable Error**
+This error occurs when uvicorn/streamlit can't parse the PORT variable properly.
+
+**Backend Error Message:**
+```
+Error: Invalid value for '--port': '$PORT' is not a valid integer.
+```
+
+**Frontend Error Message:**
+```
+Error: Invalid value for '--server.port': '${PORT:-8501}' is not a valid integer.
+```
+
+**Solution (Using Startup Scripts):**
+Both backend and frontend now include startup scripts that properly handle PORT variable expansion:
+
+**Backend (`backend/start.sh`):**
+```bash
+#!/bin/bash
+if [ -z "$PORT" ]; then
+    export PORT=8000
+fi
+exec uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+
+**Frontend (`frontend/start.sh`):**
+```bash
+#!/bin/bash
+if [ -z "$PORT" ]; then
+    export PORT=8501
+fi
+exec streamlit run streamlit_app.py --server.port=$PORT --server.address=0.0.0.0
+```
+
+**Railway Configuration:**
+- Set Custom Start Command to: `./start.sh` for both services
+- No need to set PORT variables manually - Railway provides them automatically
+
+#### 3. **Docker Build Error: "COPY ../data ./data" not found**
 This error occurs when the Dockerfile tries to copy files from outside the build context.
 
 **Solution:**
@@ -298,7 +336,7 @@ git commit -m "Fix PDF file copying for Railway deployment"
 git push origin main
 ```
 
-#### 3. **Streamlit PORT Environment Variable Error**
+#### 4. **Streamlit PORT Environment Variable Error**
 This error occurs when Streamlit can't parse the PORT variable properly.
 
 **Error Message:**
@@ -323,7 +361,54 @@ exec streamlit run streamlit_app.py --server.port=$PORT --server.address=0.0.0.0
 - No need to set PORT variable manually - Railway provides it automatically
 - The startup script falls back to 8501 if PORT is not set
 
-#### 4. **Frontend Can't Connect to Backend**
+#### 4. **Frontend Shows 502 Error - Backend Connection Failed**
+This error occurs when the frontend can't reach the backend service.
+
+**Error in Browser:**
+```
+Error: 502 - {"status":"error","code":502,"message":"Application failed to respond"}
+```
+
+**Debugging Steps:**
+
+1. **Check Backend Health:**
+   ```bash
+   curl https://your-backend.railway.app/health
+   ```
+   Expected: `{"status": "healthy", "message": "Mi Lifestyle FAQ API is running"}`
+
+2. **Check Backend Logs:**
+   ```bash
+   railway logs --service backend
+   ```
+   Look for:
+   - PDF processing messages
+   - OpenAI API errors
+   - Port binding issues
+
+3. **Verify Frontend API_URL:**
+   - Go to frontend service → Variables
+   - Ensure `API_URL=https://your-backend.railway.app/api` 
+   - **Important:** Must end with `/api`, not just the domain
+
+4. **Check CORS Settings:**
+   Backend should allow frontend domain. If needed, update CORS in `backend/app/main.py`
+
+**Quick Fix Commands:**
+```bash
+# Check both services are running
+railway status
+
+# Restart backend service
+railway service connect backend
+railway up --detach
+
+# Check backend URL and update frontend
+railway service connect frontend
+railway variables set API_URL=https://your-actual-backend-url.railway.app/api
+```
+
+#### 5. **Frontend Can't Connect to Backend**
 ```bash
 # Check frontend logs
 railway logs --service frontend
@@ -334,14 +419,14 @@ railway logs --service frontend
 # - Check CORS settings
 ```
 
-#### 5. **PDF Processing Issues**
+#### 6. **PDF Processing Issues**
 ```bash
 # Check if data folder is properly mounted
 # Verify PDF files are in the data/ directory
 # Check backend logs for ingestion errors
 ```
 
-#### 6. **OpenAI API Errors**
+#### 7. **OpenAI API Errors**
 - Verify API key is valid and has credits
 - Check OpenAI API usage limits
 - Ensure correct model permissions

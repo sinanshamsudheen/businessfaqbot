@@ -11,8 +11,10 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy application code and startup script
 COPY app ./app
+COPY start.sh .
+RUN chmod +x start.sh
 
 # Copy PDF files from backend/data to container data folder
 COPY data/ ./data/
@@ -23,5 +25,5 @@ EXPOSE 8000
 # Environment variables
 ENV PYTHONUNBUFFERED=1
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the application using startup script
+CMD ["./start.sh"]

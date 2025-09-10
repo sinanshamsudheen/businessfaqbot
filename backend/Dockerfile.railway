@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
 
 # Copy PDF files from backend/data to container data folder
-COPY data/ ./data/
+COPY data/*.pdf ./data/
 
 # Expose port
 EXPOSE 8000

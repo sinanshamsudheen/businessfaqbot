@@ -74,11 +74,35 @@ OPENAI_API_KEY=your_openai_api_key_here
    PYTHONUNBUFFERED=1
    ```
 
-5. **Configure Custom Start Command** (if needed)
+5. **Upload PDF Files** (Important!)
+   - Railway doesn't automatically copy your local `data/` folder
+   - You have two options:
+   
+   **Option A: Include PDFs in your repository (Recommended)**
+   ```bash
+   # In your local project, copy PDFs to backend folder
+   cp data/*.pdf backend/data/
+   
+   # Update backend Dockerfile to copy these files
+   # Add this line after COPY app ./app:
+   # COPY data/*.pdf ./data/
+   
+   # Commit and push changes
+   git add .
+   git commit -m "Add PDF files for Railway deployment"
+   git push origin main
+   ```
+   
+   **Option B: Mount PDFs via Railway Volume (Advanced)**
+   - Go to backend service → Settings → Volumes
+   - Create a volume mounted to `/app/data`
+   - Upload PDF files to the volume
+
+6. **Configure Custom Start Command** (if needed)
    - In Settings → Deploy
    - Custom Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 
-6. **Deploy**
+7. **Deploy**
    - Click "Deploy"
    - Wait for deployment to complete
    - Note down your backend URL (e.g., `https://your-backend.railway.app`)
@@ -257,7 +281,24 @@ railway logs --service backend
 # - Ensure port 8000 is properly exposed
 ```
 
-#### 2. **Frontend Can't Connect to Backend**
+#### 2. **Docker Build Error: "COPY ../data ./data" not found**
+This error occurs when the Dockerfile tries to copy files from outside the build context.
+
+**Solution:**
+```bash
+# Copy PDF files to backend directory
+cp data/*.pdf backend/data/
+
+# Update your Dockerfile to:
+COPY data/ ./data/
+
+# Commit and push changes
+git add .
+git commit -m "Fix PDF file copying for Railway deployment"
+git push origin main
+```
+
+#### 3. **Frontend Can't Connect to Backend**
 ```bash
 # Check frontend logs
 railway logs --service frontend
@@ -268,14 +309,14 @@ railway logs --service frontend
 # - Check CORS settings
 ```
 
-#### 3. **PDF Processing Issues**
+#### 4. **PDF Processing Issues**
 ```bash
 # Check if data folder is properly mounted
 # Verify PDF files are in the data/ directory
 # Check backend logs for ingestion errors
 ```
 
-#### 4. **OpenAI API Errors**
+#### 5. **OpenAI API Errors**
 - Verify API key is valid and has credits
 - Check OpenAI API usage limits
 - Ensure correct model permissions

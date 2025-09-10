@@ -128,7 +128,7 @@ OPENAI_API_KEY=your_openai_api_key_here
    ```
 
 3. **Configure Custom Start Command**
-   - Custom Start Command: `streamlit run streamlit_app.py --server.port $PORT --server.address 0.0.0.0`
+   - Custom Start Command: `streamlit run streamlit_app.py --server.port=${PORT:-8501} --server.address=0.0.0.0`
 
 4. **Deploy**
    - Click "Deploy"
@@ -216,7 +216,7 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "streamlit run streamlit_app.py --server.port $PORT --server.address 0.0.0.0"
+startCommand = "streamlit run streamlit_app.py --server.port=${PORT:-8501} --server.address=0.0.0.0"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 ```
@@ -298,7 +298,31 @@ git commit -m "Fix PDF file copying for Railway deployment"
 git push origin main
 ```
 
-#### 3. **Frontend Can't Connect to Backend**
+#### 3. **Streamlit PORT Environment Variable Error**
+This error occurs when Streamlit can't parse the `$PORT` variable properly.
+
+**Error Message:**
+```
+Error: Invalid value for '--server.port': '$PORT' is not a valid integer.
+```
+
+**Solution:**
+```bash
+# Update your frontend start command to use proper variable expansion:
+streamlit run streamlit_app.py --server.port=${PORT:-8501} --server.address=0.0.0.0
+
+# Or set the PORT variable explicitly in Railway:
+# Go to frontend service → Variables → Add:
+PORT=8501
+```
+
+**Alternative Solution - Update Dockerfile:**
+```dockerfile
+# Use shell form for proper variable expansion
+CMD streamlit run streamlit_app.py --server.port=${PORT:-8501} --server.address=0.0.0.0
+```
+
+#### 4. **Frontend Can't Connect to Backend**
 ```bash
 # Check frontend logs
 railway logs --service frontend
@@ -309,14 +333,14 @@ railway logs --service frontend
 # - Check CORS settings
 ```
 
-#### 4. **PDF Processing Issues**
+#### 5. **PDF Processing Issues**
 ```bash
 # Check if data folder is properly mounted
 # Verify PDF files are in the data/ directory
 # Check backend logs for ingestion errors
 ```
 
-#### 5. **OpenAI API Errors**
+#### 6. **OpenAI API Errors**
 - Verify API key is valid and has credits
 - Check OpenAI API usage limits
 - Ensure correct model permissions

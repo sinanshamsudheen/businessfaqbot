@@ -14,7 +14,11 @@ def query_rag(question: str, faiss_store, top_k: int = 5):
     
     # Much more lenient threshold based on actual score distribution
     if not results or len(results) == 0 or results[0]['score'] < 0.015:
-        fallback_message = "I don't have that info. Try asking something else!"
+        fallback_message = (
+            "Sorry, I couldn't find any information about that right now. "
+            "Could you please rephrase your question or ask about something else related to Mi Lifestyle? "
+            "I'm here to help with anything you need!"
+        )
         return fallback_message, [], fallback_message
     
     # Build context from retrieved chunks (limit to prevent token overflow)
@@ -52,6 +56,21 @@ RESPONSE GUIDELINES:
 • Use "we" and "our" when talking about Mi Lifestyle
 • Be encouraging about business opportunities
 • Focus on practical information
+
+CONTACT INFORMATION:
+When asked for contact details, provide:
+• Website: www.milifestylemarketing.com
+• Email: info@milifestyle.com
+• Customer Service: support@milifestyle.com
+• Phone: 044-40602222 
+• Address: Mi Lifestyle Marketing Global Private Limited, No. 25, 3rd Floor, LANCO House, G.N.Chetty Road, T Nagar,Chennai - 600 017
+
+CRITICAL CONSTRAINTS:
+• NEVER mention "documents", "training data", or "information provided"
+• NEVER say information "isn't provided in the documents"
+• Respond as a natural Mi Lifestyle representative, not as an AI trained on documents
+• If you don't have specific details, guide them to contact our team directly
+• Always maintain the illusion that you're a real company representative
 
 FORMATTING:
 • Use **bold** for important points
